@@ -1,13 +1,15 @@
 import argparse
 import random
 import time
-from flask import Flask, request, jsonify
+
+from flask import Flask
+from flask import request
+from flask import jsonify
 import requests
 from threading import Thread
 
 app = Flask(__name__)
 
-# Глобальные переменные для параметров
 NODE_NAME = None
 TIMEOUT = None
 SERVICES = []
@@ -16,17 +18,28 @@ SERVICES = []
 @app.route("/activate", methods=["POST"])
 def activate():
     """Основной обработчик запросов."""
+    if not SERVICES:
+        print("Responding randomly")
+        status = random.choice([200,200,200,200,200,200, 500, 502])
+        if status == 200:
+            send_to_web("green")
+        else:
+            send_to_web("red")
+        time.sleep(TIMEOUT/1000)
+        send_to_web("white")
+        return jsonify({"status": status}), status
+
     data = request.json
     color = data.get("color", "white")
     if not color:
         return jsonify({"error": "Color not provided"}), 400
 
-    # Отправляем запрос в web приложение
+    # Send request to web application (SSE for mermaid)
     web_response = send_to_web(color)
     if web_response.status_code != 200:
         return jsonify({"error": "Failed to send to web"}), 500
 
-    # Пересылаем запрос на другие сервисы и обрабатываем их ответы
+    # Send request to other services and process their responses
     errors = []
     threads = []
     responses = {}
@@ -50,17 +63,19 @@ def activate():
     for thread in threads:
         thread.join(timeout=TIMEOUT / 1000)
 
-    # Проверяем результаты
+    # time.sleep(TIMEOUT/1000)
+
+    # Check results
     if all(status == 200 for status in responses.values()):
-        # Все сервисы ответили успешно
+        # All services responded successfully
         send_to_web("green")
-        time.sleep(0.1)
+        time.sleep(0.2)
         send_to_web("white")
         return jsonify({"message": "All services responded successfully"}), 200
     else:
-        # Ошибка от одного из сервисов или таймаут
+        # Error in one of the services
         send_to_web("red")
-        time.sleep(0.1)
+        time.sleep(0.2)
         send_to_web("white")
         return jsonify(
             {"error": "One or more services failed", "responses": responses}
@@ -68,8 +83,10 @@ def activate():
 
 
 def send_to_web(color):
-    """Отправляет запрос в web приложение для изменения цвета."""
-    web_url = "http://127.0.0.1:5000/activate"  # Предполагаем, что web работает на localhost:5000
+    """Send request to the web application for changing the color."""
+
+    # web listening on localhost:5000
+    web_url = "http://127.0.0.1:5000/activate"
     payload = {"item": NODE_NAME, "color": color}
     try:
         return requests.post(web_url, json=payload)
@@ -86,26 +103,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s", "--services", action="append", help="Addresses of X services", default=[]
     )
-
     args = parser.parse_args()
-
     NODE_NAME = args.node
     LISTEN = args.listen
     TIMEOUT = args.timeout
     SERVICES = args.services
-
-    # Если сервисы X не заданы, отвечаем случайным результатом
-    if not SERVICES:
-
-        @app.route("/activate", methods=["POST"])
-        def random_response():
-            status = random.choice([200, 500, 502])
-            if status == 200:
-                send_to_web("green")
-            else:
-                send_to_web("red")
-            time.sleep(0.1)
-            send_to_web("white")
-            return jsonify({"status": status}), status
-
-    app.run(port=LISTEN)  # Запускаем сервер на порту 5001
+    app.run(port=LISTEN)  # Server listening

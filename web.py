@@ -1,29 +1,35 @@
-from flask import Flask, render_template, request, jsonify, Response
 import time
-import threading
+
+from flask import Flask
+from flask import render_template
+from flask import request
+from flask import jsonify
+from flask import Response
 
 app = Flask(__name__)
 
 # Состояние диаграммы
 diagram_state = {
-    "UI": {"color": "black"},
-    "D": {"color": "black"},
-    "P": {"color": "black"},
-    "V": {"color": "black"},
-    "T": {"color": "black"},
-    "TM": {"color": "black"},
-    "DS": {"color": "black"},
+    "UI": {"color": "white"},
+    "D": {"color": "white"},
+    "P": {"color": "white"},
+    "H": {"color": "white"},
+    "V": {"color": "white"},
+    "T": {"color": "white"},
+    "TM": {"color": "white"},
+    "DS": {"color": "white"},
 }
 
-# Поток сообщений для клиентов
+# Messsage flow for clients
 clients = []
 
 
 def event_stream():
-    """Генерация событий для клиентов."""
+    """Generate events for clients."""
     while True:
         time.sleep(1)
-        yield "data: ping\n\n"  # Отправляем "пустое" событие, чтобы клиент оставался подключен
+        # Send empty message to keep connection alive
+        yield "data: ping\n\n"
 
 
 @app.route("/")
@@ -37,6 +43,7 @@ def get_diagram():
     diagram += "    UI --> D\n"
     diagram += "    D --> P\n"
     diagram += "    P --> V\n"
+    diagram += "    P --> H\n"
     diagram += "    V --> T\n"
     diagram += "    V --> DS\n"
     diagram += "    V --> TM\n"
@@ -56,25 +63,25 @@ def get_diagram():
 
 @app.route("/events")
 def sse():
-    """Устанавливаем соединение для SSE."""
+    """Create SSE connection."""
 
     def stream():
         q = []
-        clients.append(q)  # Добавляем клиента в общий список
+        clients.append(q)
         try:
             while True:
                 if q:
-                    yield q.pop(0)  # Отправляем клиенту новое сообщение
-                time.sleep(0.1)  # Периодическая проверка
+                    yield q.pop(0)  # Send message from queue
+                time.sleep(0.1)  # Wait for new message
         finally:
-            clients.remove(q)  # Удаляем клиента при завершении соединения
+            clients.remove(q)
 
     return Response(stream(), content_type="text/event-stream")
 
 
 @app.route("/activate", methods=["POST"])
 def activate():
-    """Обрабатываем запрос на изменение элемента."""
+    """Process request to change element state."""
     data = request.json
     item = data.get("item")
     color = data.get("color", "black")
@@ -82,7 +89,7 @@ def activate():
     if item in diagram_state:
         diagram_state[item]["color"] = color
 
-        # Уведомляем клиентов об изменении состояния
+        # Notify clients about state change
         for client in clients:
             client.append("data: update\n\n")
         return jsonify({"message": f"{item} updated to {color}"}), 200

@@ -1,57 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mermaid SSE Diagram</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-    <script>
-        mermaid.initialize({ startOnLoad: false });
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Mermaid SSE Diagram</title>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+        <script>
+            mermaid.initialize({ startOnLoad: false });
 
-        async function loadDiagram() {
-            try {
-                const response = await fetch('/diagram');
-                const data = await response.json();
-                const container = document.querySelector('#diagram-container');
-                container.innerHTML = `<div class="mermaid">${data.diagram}</div>`;
-                mermaid.init();
-            } catch (error) {
-                console.error('Error loading diagram:', error);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDiagram();
-
-            // Устанавливаем соединение для SSE
-            const eventSource = new EventSource('/events');
-            eventSource.onmessage = function (event) {
-                if (event.data === "update") {
-                    loadDiagram();  // Обновляем диаграмму при уведомлении
+            async function loadDiagram() {
+                try {
+                    const response = await fetch("/diagram");
+                    const data = await response.json();
+                    const container =
+                        document.querySelector("#diagram-container");
+                    container.innerHTML = `<div class="mermaid">${data.diagram}</div>`;
+                    mermaid.init();
+                } catch (error) {
+                    console.error("Error loading diagram:", error);
                 }
-            };
+            }
 
-            document.querySelector('#activate-button').addEventListener('click', async () => {
-                const item = document.querySelector('#item').value;
-                const color = document.querySelector('#color').value;
-                await fetch('/activate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ item, color })
-                });
+            document.addEventListener("DOMContentLoaded", () => {
+                loadDiagram();
+
+                // Устанавливаем соединение для SSE
+                const eventSource = new EventSource("/events");
+                eventSource.onmessage = function (event) {
+                    if (event.data === "update") {
+                        loadDiagram(); // Обновляем диаграмму при уведомлении
+                    }
+                };
+
+                document
+                    .querySelector("#activate-button")
+                    .addEventListener("click", async () => {
+                        const item = document.querySelector("#item").value;
+                        const color = document.querySelector("#color").value;
+                        await fetch("/activate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ item, color }),
+                        });
+                    });
             });
-        });
-    </script>
-</head>
-<body>
-    <h1>Mermaid Diagram with SSE</h1>
-    <div id="diagram-container"></div>
-    <div>
-        <label for="item">Item:</label>
-        <input type="text" id="item" placeholder="e.g., V">
-        <label for="color">Color:</label>
-        <input type="color" id="color">
-        <button id="activate-button">Activate</button>
-    </div>
-</body>
+        </script>
+    </head>
+    <body>
+        <h1>Micro-service with Mermaid Diagram and SSE (Server-Sent Events)</h1>
+        <div id="diagram-container"></div>
+        <div>
+            <label for="item">Item:</label>
+            <input type="text" id="item" placeholder="e.g., V" />
+            <label for="color">Color:</label>
+            <input type="color" id="color" />
+            <button id="activate-button">Activate</button>
+        </div>
+    </body>
 </html>
