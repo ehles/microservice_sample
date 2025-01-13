@@ -6,14 +6,32 @@
         <title>Mermaid SSE Diagram</title>
         <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
         <script>
+            mermaid.initialize({
+                startOnLoad: true,
+                theme: "base",
+                themeVariables: {
+                    // Основные цвета
+                    primaryColor: "#1a1a1a", // Темный фон блоков
+                    primaryTextColor: "#00ffcc", // Неоново-голубой текст
+                    primaryBorderColor: "#00ffcc", // Неоново-голубые границы
+                    lineColor: "#ff00ff", // Розовые линии
+                    fontFamily: "monospace", // Моноширинный шрифт
+
+                    // Дополнительные настройки
+                    tertiaryColor: "#0d0d0d", // Фон диаграммы
+                    tertiaryBorderColor: "#00ffcc", // Границы блоков
+                    tertiaryTextColor: "#ffffff", // Белый текст для дополнительных элементов
+                },
+            });
+        </script>
+        <script>
             mermaid.initialize({ startOnLoad: false });
 
             async function loadDiagram() {
                 try {
                     const response = await fetch("/diagram");
                     const data = await response.json();
-                    const container =
-                        document.querySelector("#diagram-container");
+                    const container = document.querySelector("#diagram-container");
                     container.innerHTML = `<div class="mermaid">${data.diagram}</div>`;
                     mermaid.init();
                 } catch (error) {
@@ -32,29 +50,59 @@
                     }
                 };
 
-                document
-                    .querySelector("#activate-button")
-                    .addEventListener("click", async () => {
-                        const item = document.querySelector("#item").value;
-                        const color = document.querySelector("#color").value;
-                        await fetch("/activate", {
+                // Обработчик кнопки "Activate"
+                document.querySelector("#activate-button").addEventListener("click", async () => {
+                    const host = window.location.hostname;
+                    const url = `http://${host}:5016/activate`;
+                    const payload = { item: "V", color: "red" };
+
+                    try {
+                        const response = await fetch(url, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ item, color }),
+                            body: JSON.stringify(payload),
                         });
-                    });
+                        if (response.ok) {
+                            console.log("Activation request sent successfully");
+                        } else {
+                            console.error("Failed to send activation request");
+                        }
+                    } catch (error) {
+                        console.error("Error sending activation request:", error);
+                    }
+                });
             });
         </script>
+        <style>
+            /* Дополнительные стили для неонового эффекта */
+            .mermaid .node rect {
+                stroke-width: 2px;
+                rx: 10px; /* Закругленные углы */
+                ry: 10px;
+                fill: linear-gradient(45deg, #1a1a1a, #003333); /* Градиентный фон */
+                filter: drop-shadow(0 0 5px #00ffcc); /* Неоновое свечение */
+            }
+
+            .mermaid .edgePath path {
+                stroke: #ff00ff;
+                stroke-width: 2px;
+                filter: drop-shadow(0 0 3px #ff00ff); /* Неоновое свечение */
+            }
+
+            body {
+                background-color: #0d0d0d;
+                color: #00ffcc;
+                font-family: "monospace";
+            }
+        </style>
     </head>
     <body>
-        <h1>Micro-service with Mermaid Diagram and SSE (Server-Sent Events)</h1>
-        <div id="diagram-container"></div>
-        <div>
-            <label for="item">Item:</label>
-            <input type="text" id="item" placeholder="e.g., V" />
-            <label for="color">Color:</label>
-            <input type="color" id="color" />
-            <button id="activate-button">Activate</button>
+        <h1 style="text-align: center">
+            Microservice Visualization<br>Mermaid Diagram and SSE (Server-Sent Events)
+        </h1>
+        <div id="diagram-container" style="text-align: center"></div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="activate-button">Simulate UI request</button>
         </div>
     </body>
 </html>

@@ -2,6 +2,7 @@ import argparse
 import random
 import time
 
+from flask_cors import CORS
 from flask import Flask
 from flask import request
 from flask import jsonify
@@ -9,11 +10,17 @@ import requests
 from threading import Thread
 
 app = Flask(__name__)
+CORS(app)
 
 NODE_NAME = None
 TIMEOUT = None
 SERVICES = []
 
+COLOR_OK="#00ffcc"
+COLOR_ERROR="#ff0066"
+COLOR_DEFAULT="#003333"
+COLOR_DISABLED="#1a1a1a"
+COLOR_ACTIVE="#00ffcc"
 
 @app.route("/activate", methods=["POST"])
 def activate():
@@ -68,7 +75,7 @@ def activate():
     # Check results
     if all(status == 200 for status in responses.values()):
         # All services responded successfully
-        send_to_web("green")
+        send_to_web("#00ffcc")
         time.sleep(0.2)
         send_to_web("white")
         return jsonify({"message": "All services responded successfully"}), 200
